@@ -1,0 +1,594 @@
+const apiKey = '{INSERT YOUR YOUTUBE API}';
+
+function GetYouTubeID(url) {
+  const channelRegex = /(?:https?:\/\/)?(?:www\.)?youtube\.com\/(?:channel\/|c\/)([a-zA-Z0-9_-]+)/;
+  const customUrlRegex = /(?:https?:\/\/)?(?:www\.)?youtube\.com\/(@?[a-zA-Z0-9_-]+)/;
+  const handleRegex = /@([a-zA-Z0-9_-]+)/;
+
+  let match = url.match(channelRegex);
+  if (match) {
+    return `https://www.youtube.com/channel/${match[1]}`;
+  }
+
+  match = url.match(handleRegex);
+  if (match) {
+    return getChannelIdByHandle(apiKey, match[1]);
+  }
+
+  match = url.match(customUrlRegex);
+  if (match && !match[1].startsWith('watch')) {
+    return getChannelIdByCustomUrl(apiKey, match[1]);
+  }
+
+  // If no matches found, try a general search
+  return getChannelIdByGeneralSearch(apiKey, url);
+}
+
+function getChannelIdByHandle(apiKey, handle) {
+  const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${handle}&key=${apiKey}`;
+  return fetchApiData(apiUrl);
+}
+
+function getChannelIdByCustomUrl(apiKey, customUrl) {
+  const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=id&forUsername=${customUrl}&key=${apiKey}`;
+  return fetchApiData(apiUrl);
+}
+
+function getChannelIdByGeneralSearch(apiKey, query) {
+  const apiUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(query)}&key=${apiKey}`;
+  return fetchApiDataFromSearch(apiUrl);
+}
+
+function fetchApiData(apiUrl) {
+  try {
+    const response = UrlFetchApp.fetch(apiUrl);
+    const data = JSON.parse(response.getContentText());
+    
+    if (data.items && data.items.length > 0) {
+      const channelId = data.items[0].id;
+      return `https://www.youtube.com/channel/${channelId}`;
+    } else {
+      return 'Channel not found';
+    }
+  } catch (error) {
+    return `Error: ${error.message}`;
+  }
+}
+
+function fetchApiDataFromSearch(apiUrl) {
+  try {
+    const response = UrlFetchApp.fetch(apiUrl);
+    const data = JSON.parse(response.getContentText());
+    
+    if (data.items && data.items.length > 0) {
+      const channelId = data.items[0].id.channelId;
+      return `https://www.youtube.com/channel/${channelId}`;
+    } else {
+      return 'Channel not found';
+    }
+  } catch (error) {
+    return `Error: ${error.message}`;
+  }
+}
+
+function extractChannelId(url) {
+  if (url.startsWith('http')) {
+    const channelRegex = /\/channel\/([^\/]+)/;
+    const match = url.match(channelRegex);
+    return match ? match[1] : url;
+  }
+  return url;
+}
+
+function GetChannelTitle(url) {
+  const channelId = extractChannelId(url);
+  const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${apiKey}`;
+  try {
+    const response = UrlFetchApp.fetch(apiUrl);
+    const data = JSON.parse(response.getContentText());
+
+    if (data.items && data.items.length > 0) {
+      return data.items[0].snippet.title;
+    } else {
+      return 'Channel not found';
+    }
+  } catch (error) {
+    return `Error: ${error.message}`;
+  }
+}
+
+function GetCountry(url) {
+  const apiKey = '{INSERT YOUR YOUTUBE API}';
+  const channelRegex = /\/channel\/([^\/]+)/;
+  let idMatch = url.match(channelRegex);
+
+  if (idMatch) {
+    const channelId = idMatch[1];
+    const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet,brandingSettings&id=${channelId}&key=${apiKey}`;
+    try {
+      const response = UrlFetchApp.fetch(apiUrl);
+      const data = JSON.parse(response.getContentText());
+
+      if (data.items && data.items.length > 0) {
+        const country = data.items[0].brandingSettings.channel.country;
+        return country ? country : 'Country not specified';
+      } else {
+        return 'Channel not found';
+      }
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
+  } else {
+    return 'Invalid Channel URL format';
+  }
+}
+
+function GetFollowers(url) {
+  const apiKey = '{INSERT YOUR YOUTUBE API}';
+  const channelRegex = /\/channel\/([^\/]+)/;
+  let idMatch = url.match(channelRegex);
+
+  if (idMatch) {
+    const channelId = idMatch[1];
+    const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelId}&key=${apiKey}`;
+    try {
+      const response = UrlFetchApp.fetch(apiUrl);
+      const data = JSON.parse(response.getContentText());
+
+      if (data.items && data.items.length > 0) {
+        const followers = data.items[0].statistics.subscriberCount;
+        return followers ? followers : 'Followers not specified';
+      } else {
+        return 'Channel not found';
+      }
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
+  } else {
+    return 'Invalid Channel URL format';
+  }
+}
+
+function GetVideosNo(url) {
+  const apiKey = '{INSERT YOUR YOUTUBE API}';
+  const channelRegex = /\/channel\/([^\/]+)/;
+  let idMatch = url.match(channelRegex);
+
+  if (idMatch) {
+    const channelId = idMatch[1];
+    const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelId}&key=${apiKey}`;
+    try {
+      const response = UrlFetchApp.fetch(apiUrl);
+      const data = JSON.parse(response.getContentText());
+
+      if (data.items && data.items.length > 0) {
+        const videoCount = data.items[0].statistics.videoCount;
+        return videoCount ? videoCount : 'Videos not specified';
+      } else {
+        return 'Channel not found';
+      }
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
+  } else {
+    return 'Invalid Channel URL format';
+  }
+}
+
+function GetViews(url) {
+  const apiKey = '{INSERT YOUR YOUTUBE API}';
+  const channelRegex = /\/channel\/([^\/]+)/;
+  let idMatch = url.match(channelRegex);
+
+  if (idMatch) {
+    const channelId = idMatch[1];
+    const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelId}&key=${apiKey}`;
+    try {
+      const response = UrlFetchApp.fetch(apiUrl);
+      const data = JSON.parse(response.getContentText());
+
+      if (data.items && data.items.length > 0) {
+        const viewCount = data.items[0].statistics.viewCount;
+        return viewCount ? viewCount : 'Views not specified';
+      } else {
+        return 'Channel not found';
+      }
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
+  } else {
+    return 'Invalid Channel URL format';
+  }
+}
+
+function GetCreationDate(url) {
+  const apiKey = '{INSERT YOUR YOUTUBE API}';
+  const channelRegex = /\/channel\/([^\/]+)/;
+  let idMatch = url.match(channelRegex);
+
+  if (idMatch) {
+    const channelId = idMatch[1];
+    const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${apiKey}`;
+    try {
+      const response = UrlFetchApp.fetch(apiUrl);
+      const data = JSON.parse(response.getContentText());
+
+      if (data.items && data.items.length > 0) {
+        const creationDate = data.items[0].snippet.publishedAt;
+        return creationDate ? creationDate.split('T')[0].replace(/-/g, '/') : 'Creation date not specified';
+      } else {
+        return 'Channel not found';
+      }
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
+  } else {
+    return 'Invalid Channel URL format';
+  }
+}
+
+function GetChannelDetails(url) {
+  const apiKey = '{INSERT YOUR YOUTUBE API}';
+  const channelRegex = /\/channel\/([^\/]+)/;
+  let idMatch = url.match(channelRegex);
+
+  if (idMatch) {
+    const channelId = idMatch[1];
+    const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${apiKey}`;
+    try {
+      const response = UrlFetchApp.fetch(apiUrl);
+      const data = JSON.parse(response.getContentText());
+
+      if (data.items && data.items.length > 0) {
+        const details = data.items[0].snippet.description;
+        return details ? details : 'Channel details not specified';
+      } else {
+        return 'Channel not found';
+      }
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
+  } else {
+    return 'Invalid Channel URL format';
+  }
+}
+
+function GetChannelURLLinks(url) {
+  const apiKey = '{INSERT YOUR YOUTUBE API}';
+  const channelRegex = /\/channel\/([^\/]+)/;
+  let idMatch = url.match(channelRegex);
+
+  if (idMatch) {
+    const channelId = idMatch[1];
+    const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${apiKey}`;
+    try {
+      const response = UrlFetchApp.fetch(apiUrl);
+      const data = JSON.parse(response.getContentText());
+
+      if (data.items && data.items.length > 0) {
+        const details = data.items[0].snippet.description;
+        
+        // Extracting links from the description based on typical patterns
+        const linkRegex = /(https?:\/\/[^\s]+)/g;
+        const urlMatches = details.match(linkRegex);
+
+        if (urlMatches && urlMatches.length > 0) {
+          return urlMatches.join('\n');
+        } else {
+          return 'No URL links found';
+        }
+      } else {
+        return 'Channel not found';
+      }
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
+  } else {
+    return 'Invalid Channel URL format';
+  }
+}
+
+
+
+function GetChannelEmail(url) {
+  const apiKey = '{INSERT YOUR YOUTUBE API}';
+  const channelRegex = /\/channel\/([^\/]+)/;
+  let idMatch = url.match(channelRegex);
+
+  if (idMatch) {
+    const channelId = idMatch[1];
+    const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${apiKey}`;
+    try {
+      const response = UrlFetchApp.fetch(apiUrl);
+      const data = JSON.parse(response.getContentText());
+
+      if (data.items && data.items.length > 0) {
+        const details = data.items[0].snippet.description;
+        const emailMatch = details.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+        return emailMatch ? emailMatch[0] : '';
+      } else {
+        return 'Channel not found';
+      }
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
+  } else {
+    return 'Invalid Channel URL format';
+  }
+}
+
+function GetChannelTelegram(url) {
+  const apiKey = '{INSERT YOUR YOUTUBE API}';
+  const channelRegex = /\/channel\/([^\/]+)/;
+  let idMatch = url.match(channelRegex);
+
+  if (idMatch) {
+    const channelId = idMatch[1];
+    const apiUrl = `https://www.googleapis.com/youtube/v3/channels?part=snippet&id=${channelId}&key=${apiKey}`;
+    try {
+      const response = UrlFetchApp.fetch(apiUrl);
+      const data = JSON.parse(response.getContentText());
+
+      if (data.items && data.items.length > 0) {
+        const details = data.items[0].snippet.description;
+        
+        // Extracting Telegram links
+        const telegramLinkMatches = details.match(/(https?:\/\/)?t\.me\/[a-zA-Z0-9_]+/g);
+        
+        // Extracting Telegram handles while avoiding emails
+        const telegramHandleMatches = details.match(/(^|\s)@[a-zA-Z0-9_]+/g);
+        
+        // Filter out emails
+        const telegramHandles = telegramHandleMatches ? telegramHandleMatches.filter(handle => !/\S+@\S+\.\S+/.test(handle)) : [];
+
+        const telegramLinks = telegramLinkMatches ? telegramLinkMatches.map(link => link.startsWith('http') ? link : `https://${link}`) : [];
+
+        const allTelegramLinks = telegramLinks.concat(telegramHandles.map(handle => handle.trim()));
+
+        if (allTelegramLinks.length > 0) {
+          return allTelegramLinks.join('\n');
+        } 
+      } else {
+        return 'Channel not found';
+      }
+    } catch (error) {
+      return `Error: ${error.message}`;
+    }
+  } else {
+    return 'Invalid Channel URL format';
+  }
+}
+
+
+function GetChannelComments(url) {
+  const apiKey = '{INSERT YOUR YOUTUBE API}';
+  const channelRegex = /\/channel\/([^\/]+)/;
+  let idMatch = url.match(channelRegex);
+
+  if (idMatch) {
+    const channelId = idMatch[1];
+    const videoIds = getVideoIdsByChannelId(apiKey, channelId);
+    if (videoIds.length === 0) {
+      return 'No videos found';
+    }
+
+    let totalComments = 0;
+    videoIds.forEach(videoId => {
+      const commentsCount = getCommentsCountByVideoId(apiKey, videoId);
+      totalComments += commentsCount;
+    });
+
+    return totalComments;
+  } else {
+    return 'Invalid Channel URL format';
+  }
+}
+
+function getVideoIdsByChannelId(apiKey, channelId) {
+  const apiUrl = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=id&order=date&maxResults=50`;
+  try {
+    const response = UrlFetchApp.fetch(apiUrl);
+    const data = JSON.parse(response.getContentText());
+    const videoIds = data.items.map(item => item.id.videoId).filter(id => id !== undefined);
+    return videoIds;
+  } catch (error) {
+    return [];
+  }
+}
+
+function getCommentsCountByVideoId(apiKey, videoId) {
+  const apiUrl = `https://www.googleapis.com/youtube/v3/videos?key=${apiKey}&id=${videoId}&part=statistics`;
+  try {
+    const response = UrlFetchApp.fetch(apiUrl);
+    const data = JSON.parse(response.getContentText());
+    if (data.items && data.items.length > 0) {
+      return parseInt(data.items[0].statistics.commentCount, 10) || 0;
+    } else {
+      return 0;
+    }
+  } catch (error) {
+    return 0;
+  }
+}
+
+function GetAverageDuration(url) {
+  const apiKey = '{INSERT YOUR YOUTUBE API}';
+  const channelRegex = /\/channel\/([^\/]+)/;
+  let idMatch = url.match(channelRegex);
+
+  if (idMatch) {
+    const channelId = idMatch[1];
+    const videoIds = getVideoIdsByChannelId(apiKey, channelId);
+    if (videoIds.length === 0) {
+      return 'No videos found';
+    }
+
+    let totalDuration = 0;
+    videoIds.forEach(videoId => {
+      const duration = getVideoDurationByVideoId(apiKey, videoId);
+      totalDuration += duration;
+    });
+
+    const averageDuration = totalDuration / videoIds.length;
+    return (averageDuration / 60).toFixed(2); // Convert to minutes and round to 2 decimal places
+  } else {
+    return 'Invalid Channel URL format';
+  }
+}
+
+function getVideoIdsByChannelId(apiKey, channelId) {
+  const apiUrl = `https://www.googleapis.com/youtube/v3/search?key=${apiKey}&channelId=${channelId}&part=id&order=date&maxResults=50`;
+  try {
+    const response = UrlFetchApp.fetch(apiUrl);
+    const data = JSON.parse(response.getContentText());
+    const videoIds = data.items.map(item => item.id.videoId).filter(id => id !== undefined);
+    return videoIds;
+  } catch (error) {
+    return [];
+  }
+}
+
+function getVideoDurationByVideoId(apiKey, videoId) {
+  const apiUrl = `https://www.googleapis.com/youtube/v3/videos?key=${apiKey}&id=${videoId}&part=contentDetails`;
+  try {
+    const response = UrlFetchApp.fetch(apiUrl);
+    const data = JSON.parse(response.getContentText());
+    if (data.items && data.items.length > 0) {
+      const duration = data.items[0].contentDetails.duration;
+      return parseISO8601Duration(duration);
+    } else {
+      return 0;
+    }
+  } catch (error) {
+    return 0;
+  }
+}
+
+function parseISO8601Duration(duration) {
+  const matches = duration.match(/PT(\d+H)?(\d+M)?(\d+S)?/);
+  const hours = parseInt(matches[1]) || 0;
+  const minutes = parseInt(matches[2]) || 0;
+  const seconds = parseInt(matches[3]) || 0;
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+function onEdit(e) {
+  var sheet = e.source.getActiveSheet();
+  var editedCell = e.range;
+  
+  // Check if the edit was made in column D
+  if (editedCell.getColumn() == 4) {
+    var row = editedCell.getRow();
+    var isChecked = editedCell.getValue() === true;
+    
+  // Define the columns and their corresponding formulas
+    var columnsAndFormulas = [
+      {col: 3, formula: '=GetChannelTitle(B{row})'},
+      {col: 5, formula: '=GetCountry(B{row})'},
+      {col: 6, formula: '=GetFollowers(B{row})'},
+      {col: 7, formula: '=GetVideosNo(B{row})'},
+      {col: 8, formula: '=GetViews(B{row})'},
+      {col: 9, formula: '=GetCreationDate(B{row})'},
+      {col: 12, formula: '=GetChannelComments(B{row})'},
+      {col: 17, formula: '=GetAverageDuration(B{row})'},
+      {col: 18, formula: '=GetChannelDetails(B{row})'},
+      {col: 19, formula: '=GetChannelEmail(B{row})'},
+      {col: 20, formula: '=GetChannelTelegram(B{row})'}
+    ];
+
+    if (isChecked) {
+      // If checked, insert all formulas
+      columnsAndFormulas.forEach(function(item) {
+        var cell = sheet.getRange(row, item.col);
+        cell.setFormula(item.formula.replace('{row}', row));
+      });
+      
+      // Handle column B separately
+      var columnBCell = sheet.getRange(row, 2);
+      var columnBValue = columnBCell.getValue();
+      if (columnBValue === "" || columnBValue === null) {
+        columnBCell.setFormula('=GetYouTubeID(A' + row + ')');
+      }
+    } else {
+      
+      // Handle column B separately
+      var columnBCell = sheet.getRange(row, 2);
+      var columnBValue = columnBCell.getValue();
+      columnBCell.setValue(columnBValue);
+      
+      // If unchecked, replace formulas with their current values
+      columnsAndFormulas.forEach(function(item) {
+        var cell = sheet.getRange(row, item.col);
+        var currentValue = cell.getValue();
+        cell.setValue(currentValue);
+      });
+    
+    }
+
+  }
+  
+  // Check for duplicates in columns B and C after any edit
+  checkForDuplicates(sheet);
+}
+
+function checkForDuplicates(sheet) {
+  var lastRow = sheet.getLastRow();
+  var rangeB = sheet.getRange("B2:B" + lastRow);
+  var rangeC = sheet.getRange("C2:C" + lastRow);
+  var valuesB = rangeB.getValues();
+  var valuesC = rangeC.getValues();
+  var duplicatesB = {};
+  var duplicatesC = {};
+  
+  // Reset background color for all cells in columns B and C
+  rangeB.setBackground(null);
+  rangeC.setBackground(null);
+  
+  // Find duplicates in column B
+  for (var i = 0; i < valuesB.length; i++) {
+    var value = valuesB[i][0];
+    if (value !== "") {
+      if (duplicatesB[value]) {
+        duplicatesB[value].push(i + 2);
+      } else {
+        duplicatesB[value] = [i + 2];
+      }
+    }
+  }
+  
+  // Find duplicates in column C
+  for (var i = 0; i < valuesC.length; i++) {
+    var value = valuesC[i][0];
+    if (value !== "") {
+      if (duplicatesC[value]) {
+        duplicatesC[value].push(i + 2);
+      } else {
+        duplicatesC[value] = [i + 2];
+      }
+    }
+  }
+  
+  // Highlight duplicates in column B
+  for (var key in duplicatesB) {
+    if (duplicatesB[key].length > 1) {
+      duplicatesB[key].forEach(function(row) {
+        sheet.getRange(row, 2).setBackground("lightyellow");
+      });
+    }
+  }
+  
+  // Highlight duplicates in column C
+  for (var key in duplicatesC) {
+    if (duplicatesC[key].length > 1) {
+      duplicatesC[key].forEach(function(row) {
+        sheet.getRange(row, 3).setBackground("lightyellow");
+      });
+    }
+  }
+}
+
+// Run checkForDuplicates when the spreadsheet is opened
+function onOpen() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  checkForDuplicates(sheet);
+}
